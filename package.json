@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "start": "chokidar index.wat --initial -c 'wat2wasm -f=simd index.wat'"
+  },
+  "devDependencies": {
+    "chokidar-cli": "^3.0.0",
+    "wat2wasm": "^3.0.0"
+  }
+}

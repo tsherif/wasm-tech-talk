@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WASM Tech Talk</title>
+</head>
+<body>
+<script>
+(async () => {
+    // Create memory block, 1 page = 65kB
+    const memory = new WebAssembly.Memory({ initial: 1 });
+
+    // instantiateStreaming takes a promise that resolves to a response for wasm data.
+    // Second object is JS functionality and data passed to wasm.
+    // Import object must be namespaced, but "env" is an arbitrary name.
+    const wasm = await WebAssembly.instantiateStreaming(fetch("index.wasm"), {
+        env: {
+            memory,
+            printNum(n) {
+                console.log(`Got ${n} from wasm!`);
+            }
+        }
+    });
+
+    // Create float32 view of memory to store data.
+    // This is visible to the wasm side.
+    const memf32 = new Float32Array(memory.buffer);
+    memf32[0] = 7;
+    memf32[2] = 12;
+
+    // Get the functions exported from wasm.
+    const { return5, print7, add, printMem, addSIMD } = wasm.instance.exports;
+
+    console.log(return5());
+    print7();
+    console.log(add(3, 2));
+    printMem(0)
+    printMem(2)
+
+    // This loads two f32x4 vectors into memory for the SIMD add:
+    // [0.0, 1.0, 2.0, 3.0]
+    // [4.0, 5.0, 6.0, 7.0]
+    for (let i = 0; i < 8; ++i) {
+        memf32[i] = i;
+    }
+
+    addSIMD();
+    console.log(Array.from(memf32.subarray(0, 4)));   // Vector 1
+    console.log(Array.from(memf32.subarray(4, 8)));   // Vector 2
+    console.log(Array.from(memf32.subarray(8, 12)));  // Result vector
+})()
+</script>
+
+</body>
+</html>
